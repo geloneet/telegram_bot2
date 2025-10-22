@@ -13,7 +13,6 @@ applications:
     run:
       command: python bot/main.py
     instance:
-      type: small
-      env:
-        - name: BOT_TOKEN
-          value: "7668188428:AAHOLXWyNFyDQKsY_9qBIcdSIMB8hVvQnCw"
+      type: small   
+    env:
+      BOT_TOKEN: ${{ secrets.BOT_TOKEN }}
