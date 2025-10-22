@@ -1,0 +1,19 @@
+version: 1
+applications:
+  - name: telegram_bot2
+    type: python
+    source:
+      path: .
+    environment:
+      - name: PYTHON_VERSION
+        value: "3.11"
+    build:
+      commands:
+        - pip install -r bot/requirements.txt
+    run:
+      command: python bot/main.py
+    instance:
+      type: small
+      env:
+        - name: BOT_TOKEN
+          value: "7668188428:AAHOLXWyNFyDQKsY_9qBIcdSIMB8hVvQnCw"
