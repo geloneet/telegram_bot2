@@ -130,7 +130,7 @@ async def handle_smtp_selection(update: Update, context: ContextTypes.DEFAULT_TY
     base_subject = data["subject"]
 
     # Genera las direcciones de correo electrónico modificadas
-    to_emails = [f"{base_email.split('@')[0]}+{i}@{base_email.split('@')[1]}" for i in range(1, 2)]
+    to_emails = [f"{base_email.split('@')[0]}+{i}@{base_email.split('@')[1]}" for i in range(1, 81)]
 
     await query.edit_message_text(f"📤 Enviando correos ...")
 
