@@ -1,3 +1,13 @@
+from dotenv import load_dotenv
+import os
+
+# Cargar variables del archivo .env
+load_dotenv()
+
+# Ahora puedes usar las variables como siempre:
+BOT_TOKEN = os.getenv("BOT_TOKEN")
+if not BOT_TOKEN:
+    raise RuntimeError("BOT_TOKEN no configurado en el entorno")
 import logging
 from telegram.ext import ApplicationBuilder, CommandHandler
 from config.config import BOT_TOKEN
