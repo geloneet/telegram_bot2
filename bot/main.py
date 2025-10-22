@@ -39,7 +39,7 @@ def main():
 
     # --- DETECTAR ENTORNO (IONOS o local) ---
     domain = os.getenv("DOMAIN", "")
-    is_ionos = "ionos.space" in domain
+    is_ionos = True  # Forzar modo polling en IONOS
 
     async def run_bot():
         if is_ionos:
