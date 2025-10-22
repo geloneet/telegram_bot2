@@ -38,29 +38,25 @@ def main():
     logger.info("🤖 Iniciando bot...")
 
     # --- Forzar modo POLLING en IONOS ---
-    domain = os.getenv("DOMAIN", "")
-    is_ionos = True  # fuerza modo polling
+    logger.info("🌐 Ejecutando en IONOS: usando modo POLLING (sin webhook)")
 
     async def run_bot():
-        logger.info("🌐 Ejecutando en IONOS: usando modo POLLING (sin webhook)")
         await app.bot.delete_webhook(drop_pending_updates=True)
-        await app.run_polling()
+        await app.initialize()
+        await app.start()
+        logger.info("✅ Bot iniciado correctamente y esperando comandos...")
+        await app.updater.start_polling()
+        await asyncio.Event().wait()
 
     try:
-        try:
-            loop = asyncio.get_running_loop()
-            logger.info("🔁 Usando loop existente (IONOS / Actions)")
-            loop.create_task(run_bot())
-            loop.run_forever()
-        except RuntimeError:
-            logger.info("🆕 Creando nuevo loop local")
-            asyncio.run(run_bot())
+        # Usa el loop global de asyncio sin cerrarlo (IONOS compatible)
+        loop = asyncio.get_event_loop()
+        loop.create_task(run_bot())
+        loop.run_forever()
+    except (RuntimeError, KeyboardInterrupt):
+        logger.info("🛑 Finalizando bot...")
     except NetworkError as e:
         logger.error(f"❌ Error de conexión con Telegram: {e}")
-        logger.info("Reintentando en 5 segundos...")
-        import time
-        time.sleep(5)
-        asyncio.run(run_bot())
 
 
 if __name__ == "__main__":
