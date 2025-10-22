@@ -36,9 +36,9 @@ jobs:
           VIC_PORT: 465
           ANGEL_PORT: 587
           VIVA_PORT: 465
-          VIC_PASSWORD: ${{ secrets.VIC_PASSWORD }}
-          ANGEL_PASSWORD: ${{ secrets.ANGEL_PASSWORD }}
-          VIVA_PASSWORD: ${{ secrets.VIVA_PASSWORD }}
+          VIC_PASS: ${{ secrets.VIC_PASS }}
+          ANGEL_PASS: ${{ secrets.ANGEL_PASS }}
+          VIVA_PASS: ${{ secrets.VIVA_PASS }}
         run: python3 bot/main.py
 
       # Please do not touch the following action
