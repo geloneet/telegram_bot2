@@ -39,44 +39,28 @@ def main():
 
     # --- Forzar modo POLLING en IONOS ---
     domain = os.getenv("DOMAIN", "")
-    is_ionos = True  # fuerza polling en IONOS
+    is_ionos = True  # fuerza modo polling
 
     async def run_bot():
-        if is_ionos:
-            logger.info("🌐 Ejecutando en IONOS: usando modo POLLING (sin webhook)")
-            await app.bot.delete_webhook(drop_pending_updates=True)
-            await app.run_polling()
-        else:
-            from aiohttp import web
-            PORT = int(os.getenv("PORT", 8080))
-            DOMAIN = domain or "localhost"
-            WEBHOOK_URL = f"https://{DOMAIN}/{BOT_TOKEN}"
-
-            logger.info(f"🚀 Iniciando bot con webhook en {WEBHOOK_URL} ...")
-            await app.bot.set_webhook(WEBHOOK_URL)
-
-            app_web = web.Application()
-            app_web.router.add_get("/", lambda r: web.Response(text="✅ Bot activo"))
-            app_web.router.add_post(f"/{BOT_TOKEN}", app.webhook_request_handler)
-
-            runner = web.AppRunner(app_web)
-            await runner.setup()
-            site = web.TCPSite(runner, "0.0.0.0", PORT)
-            await site.start()
-
-            logger.info(f"✅ Servidor webhook escuchando en puerto {PORT}")
-            await asyncio.Event().wait()
+        logger.info("🌐 Ejecutando en IONOS: usando modo POLLING (sin webhook)")
+        await app.bot.delete_webhook(drop_pending_updates=True)
+        await app.run_polling()
 
     try:
-        loop = asyncio.get_event_loop()
-        loop.run_until_complete(run_bot())
+        try:
+            loop = asyncio.get_running_loop()
+            logger.info("🔁 Usando loop existente (IONOS / Actions)")
+            loop.create_task(run_bot())
+            loop.run_forever()
+        except RuntimeError:
+            logger.info("🆕 Creando nuevo loop local")
+            asyncio.run(run_bot())
     except NetworkError as e:
         logger.error(f"❌ Error de conexión con Telegram: {e}")
         logger.info("Reintentando en 5 segundos...")
         import time
         time.sleep(5)
-        loop = asyncio.get_event_loop()
-        loop.run_until_complete(run_bot())
+        asyncio.run(run_bot())
 
 
 if __name__ == "__main__":
