@@ -17,27 +17,31 @@ env:
   DEPLOYMENT_FOLDER: .
 
 jobs:
-# Please do not rename this job
+  # Please do not rename this job
   build-project:
     name: build telegram_bot2
     runs-on: ubuntu-latest
     steps:
-      - name: checkout
+      - name: Checkout
         uses: actions/checkout@v4
         with:
           submodules: 'recursive'
 
       - name: Install dependencies
-# uncomment the following lines if you want to add environment variables for this step
-#        env:
-#          MY_ENV_VAR: value-for-my-env-var
-#          MY_SECRET_ENV_VAR: ${{ secrets.MY_SECRET }} # here you can find information how to create secrets: https://docs.github.com/en/actions/security-guides/encrypted-secrets
         run: pip install -r bot/requirements.txt
 
       - name: Run bot
+        env:
+          BOT_TOKEN: ${{ secrets.BOT_TOKEN }}
+          VIC_PORT: 465
+          ANGEL_PORT: 587
+          VIVA_PORT: 465
+          VIC_PASSWORD: ${{ secrets.VIC_PASSWORD }}
+          ANGEL_PASSWORD: ${{ secrets.ANGEL_PASSWORD }}
+          VIVA_PASSWORD: ${{ secrets.VIVA_PASSWORD }}
         run: python3 bot/main.py
 
-# Please do not touch the following action
+      # Please do not touch the following action
       - name: Store deployment content
         uses: ionos-deploy-now/artifact-action@v1
         with:
