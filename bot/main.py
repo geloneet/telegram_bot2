@@ -1,4 +1,8 @@
 def main():
+    import asyncio
+    from telegram.ext import ApplicationBuilder, CommandHandler
+    from telegram.error import NetworkError
+
     init_db()
 
     BOT_TOKEN = os.getenv("BOT_TOKEN")
@@ -16,31 +20,49 @@ def main():
     app.add_handler(CommandHandler("recargar", recargar_command))
     app.add_handler(CommandHandler("saldo", saldo_command))
 
-    # --- CONFIGURACIÓN PARA IONOS (Webhook + listener explícito) ---
-    import asyncio
-    from aiohttp import web
+    logger.info("🤖 Iniciando bot...")
 
-    PORT = int(os.environ.get("PORT", 8080))
-    DOMAIN = os.environ.get("DOMAIN", "home-5018860448.app-ionos.space")
-    WEBHOOK_URL = f"https://{DOMAIN}/{BOT_TOKEN}"
+    # --- DETECTAR ENTORNO (IONOS o local) ---
+    domain = os.getenv("DOMAIN", "")
+    is_ionos = "ionos.space" in domain
 
-    async def handle(request):
-        return web.Response(text="✅ Bot Telegram activo en IONOS")
+    async def run_bot():
+        if is_ionos:
+            # En IONOS — usar POLLING porque el proxy bloquea webhooks (403)
+            logger.info("🌐 Ejecutando en IONOS: usando modo POLLING (sin webhook)")
+            await app.bot.delete_webhook(drop_pending_updates=True)
+            await app.run_polling()
+        else:
+            # Local o VPS — usar webhook si se define un dominio
+            from aiohttp import web
+            PORT = int(os.getenv("PORT", 8080))
+            DOMAIN = domain or "localhost"
+            WEBHOOK_URL = f"https://{DOMAIN}/{BOT_TOKEN}"
 
-    app_web = web.Application()
-    app_web.router.add_get("/", handle)  # respuesta para la raíz
-    app_web.router.add_post(f"/{BOT_TOKEN}", app.webhook_handler())  # webhook Telegram
+            logger.info(f"🚀 Iniciando bot con webhook en {WEBHOOK_URL} ...")
+            await app.bot.set_webhook(WEBHOOK_URL)
 
-    logger.info(f"🚀 Iniciando bot con webhook en {WEBHOOK_URL} ...")
+            app_web = web.Application()
+            app_web.router.add_get("/", lambda r: web.Response(text="✅ Bot activo"))
+            app_web.router.add_post(f"/{BOT_TOKEN}", app.webhook_request_handler)
 
-    # Iniciar webhook manualmente con aiohttp
-    async def run():
-        await app.bot.set_webhook(WEBHOOK_URL)
-        runner = web.AppRunner(app_web)
-        await runner.setup()
-        site = web.TCPSite(runner, "0.0.0.0", PORT)
-        await site.start()
-        logger.info(f"✅ Servidor webhook escuchando en puerto {PORT}")
-        await asyncio.Event().wait()  # mantener en ejecución
+            runner = web.AppRunner(app_web)
+            await runner.setup()
+            site = web.TCPSite(runner, "0.0.0.0", PORT)
+            await site.start()
 
-    asyncio.run(run())
+            logger.info(f"✅ Servidor webhook escuchando en puerto {PORT}")
+            await asyncio.Event().wait()
+
+    try:
+        asyncio.run(run_bot())
+    except NetworkError as e:
+        logger.error(f"❌ Error de conexión con Telegram: {e}")
+        logger.info("Reintentando en 5 segundos...")
+        import time
+        time.sleep(5)
+        asyncio.run(run_bot())
+
+
+if __name__ == "__main__":
+    main()
