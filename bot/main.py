@@ -12,7 +12,7 @@ from handlers.status_handler import status_command
 from handlers.sp_handler import get_sp_conversation_handler
 from handlers.recargar_handler import recargar_command
 from handlers.saldo_handler import saldo_command
-from services.db_service import init_db  # ✅ IMPORTACIÓN AGREGADA
+from services.db_service import init_db  # ✅ importante
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
@@ -37,18 +37,16 @@ def main():
 
     logger.info("🤖 Iniciando bot...")
 
-    # --- DETECTAR ENTORNO (IONOS o local) ---
+    # --- Forzar modo POLLING en IONOS ---
     domain = os.getenv("DOMAIN", "")
-    is_ionos = True  # Forzar modo polling en IONOS
+    is_ionos = True  # fuerza polling en IONOS
 
     async def run_bot():
         if is_ionos:
-            # En IONOS — usar POLLING porque el proxy bloquea webhooks (403)
             logger.info("🌐 Ejecutando en IONOS: usando modo POLLING (sin webhook)")
             await app.bot.delete_webhook(drop_pending_updates=True)
             await app.run_polling()
         else:
-            # Local o VPS — usar webhook si se define un dominio
             from aiohttp import web
             PORT = int(os.getenv("PORT", 8080))
             DOMAIN = domain or "localhost"
@@ -70,13 +68,15 @@ def main():
             await asyncio.Event().wait()
 
     try:
-        asyncio.run(run_bot())
+        loop = asyncio.get_event_loop()
+        loop.run_until_complete(run_bot())
     except NetworkError as e:
         logger.error(f"❌ Error de conexión con Telegram: {e}")
         logger.info("Reintentando en 5 segundos...")
         import time
         time.sleep(5)
-        asyncio.run(run_bot())
+        loop = asyncio.get_event_loop()
+        loop.run_until_complete(run_bot())
 
 
 if __name__ == "__main__":
