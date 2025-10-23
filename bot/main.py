@@ -27,11 +27,14 @@ logger = logging.getLogger(__name__)
 # ============================
 # 🌎 TIMEZONE CONFIG
 # ============================
-# APScheduler requiere pytz obligatoriamente
 tz = pytz.timezone("America/Mexico_City")
-
-# Creamos un scheduler con timezone correcto
 scheduler = AsyncIOScheduler(timezone=tz)
+scheduler.configure(timezone=tz)
+scheduler.start()  # ✅ Esto evita el error de timezone
+
+# Crear JobQueue con scheduler personalizado
+job_queue = JobQueue(scheduler=scheduler)
+app = ApplicationBuilder().token(BOT_TOKEN).job_queue(job_queue).build()
 
 # ============================
 # 🔐 IP VALIDATION
