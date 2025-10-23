@@ -1,12 +1,17 @@
 import os
+import time
 import logging
 import asyncio
 import ipaddress
-import pytz
 from aiohttp import web
 from telegram.ext import ApplicationBuilder, CommandHandler, JobQueue
 from telegram.error import NetworkError
-from apscheduler.schedulers.asyncio import AsyncIOScheduler
+
+# ============================
+# 🌎 FIX: Forzar timezone antes de importar nada que use apscheduler
+# ============================
+os.environ["TZ"] = "America/Mexico_City"
+time.tzset()
 
 # --- Importaciones de tus módulos ---
 from handlers.start_handler import start_command
@@ -62,19 +67,10 @@ def main():
     if not BOT_TOKEN:
         raise RuntimeError("BOT_TOKEN no configurado en el entorno")
 
-    # ============================
-    # 🌎 TIMEZONE CONFIG — aquí adentro
-    # ============================
-    tz = pytz.timezone("America/Mexico_City")
-    scheduler = AsyncIOScheduler(timezone=tz)
-    scheduler.configure(timezone=tz)
-    scheduler.start()
-
-    # Crear JobQueue y forzarle nuestro scheduler pytz
+    # ✅ JobQueue ya tomará la timezone correcta del entorno
     job_queue = JobQueue()
-    job_queue._scheduler = scheduler  # 👈 línea clave
 
-    # Inicializar aplicación con job_queue correcto
+    # Inicializar aplicación con job_queue
     app = ApplicationBuilder().token(BOT_TOKEN).job_queue(job_queue).build()
 
     # Registrar comandos
