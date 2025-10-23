@@ -32,9 +32,9 @@ scheduler = AsyncIOScheduler(timezone=tz)
 scheduler.configure(timezone=tz)
 scheduler.start()  # ✅ Esto evita el error de timezone
 
-# Crear JobQueue con scheduler personalizado
-job_queue = JobQueue(scheduler=scheduler)
-app = ApplicationBuilder().token(BOT_TOKEN).job_queue(job_queue).build()
+# Crear JobQueue y forzarle el scheduler correcto
+job_queue = JobQueue()
+job_queue._scheduler = scheduler  # 👈 Esto es la corrección real
 
 # ============================
 # 🔐 IP VALIDATION
@@ -80,9 +80,6 @@ def main():
     BOT_TOKEN = os.getenv("BOT_TOKEN")
     if not BOT_TOKEN:
         raise RuntimeError("BOT_TOKEN no configurado en el entorno")
-
-    # Crear JobQueue con nuestro scheduler (corrección clave)
-    job_queue = JobQueue(scheduler=scheduler)
 
     # Inicializar aplicación Telegram con job_queue personalizado
     app = ApplicationBuilder().token(BOT_TOKEN).job_queue(job_queue).build()
