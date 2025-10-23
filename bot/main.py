@@ -4,7 +4,7 @@ import asyncio
 import ipaddress
 import pytz
 from aiohttp import web
-from telegram.ext import ApplicationBuilder, CommandHandler
+from telegram.ext import ApplicationBuilder, CommandHandler, JobQueue
 from telegram.error import NetworkError
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
 
@@ -28,10 +28,10 @@ logger = logging.getLogger(__name__)
 # 🌎 TIMEZONE CONFIG
 # ============================
 # APScheduler requiere pytz obligatoriamente
-# Ajusta "America/Mexico_City" a tu zona horaria si es diferente
 tz = pytz.timezone("America/Mexico_City")
-# Inicializa un scheduler para que no use el timezone por defecto del sistema
-AsyncIOScheduler(timezone=tz)
+
+# Creamos un scheduler con timezone correcto
+scheduler = AsyncIOScheduler(timezone=tz)
 
 # ============================
 # 🔐 IP VALIDATION
@@ -78,8 +78,11 @@ def main():
     if not BOT_TOKEN:
         raise RuntimeError("BOT_TOKEN no configurado en el entorno")
 
-    # Inicializar aplicación Telegram
-    app = ApplicationBuilder().token(BOT_TOKEN).build()
+    # Crear JobQueue con nuestro scheduler (corrección clave)
+    job_queue = JobQueue(scheduler=scheduler)
+
+    # Inicializar aplicación Telegram con job_queue personalizado
+    app = ApplicationBuilder().token(BOT_TOKEN).job_queue(job_queue).build()
 
     # Registrar comandos
     app.add_handler(CommandHandler("start", start_command))
