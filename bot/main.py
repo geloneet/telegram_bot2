@@ -25,43 +25,24 @@ logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
 # ============================
-# 🌎 TIMEZONE CONFIG
-# ============================
-tz = pytz.timezone("America/Mexico_City")
-scheduler = AsyncIOScheduler(timezone=tz)
-scheduler.configure(timezone=tz)
-scheduler.start()  # ✅ Esto evita el error de timezone
-
-# Crear JobQueue y forzarle el scheduler correcto
-job_queue = JobQueue()
-job_queue._scheduler = scheduler  # 👈 Esto es la corrección real
-
-# ============================
 # 🔐 IP VALIDATION
 # ============================
-# IPs oficiales de Telegram (rango conocido)
-# Fuente: https://core.telegram.org/bots/webhooks#the-short-version
 TELEGRAM_IP_RANGES = [
     ipaddress.ip_network('149.154.160.0/20'),
     ipaddress.ip_network('91.108.4.0/22'),
 ]
-
-# IP interna de tu servidor para permitir requests locales (opcional)
 SERVER_IP = os.getenv("SERVER_IP", "127.0.0.1")
 
 async def validate_ip(request):
-    """Valida que la IP de origen sea Telegram o el propio servidor"""
     peername = request.transport.get_extra_info('peername')
     if peername is None:
         raise web.HTTPForbidden(text="IP no válida")
     ip, _ = peername
     ip_addr = ipaddress.ip_address(ip)
 
-    # Permitir si viene del propio servidor
     if ip == SERVER_IP:
         return
 
-    # Permitir si viene de Telegram
     for net in TELEGRAM_IP_RANGES:
         if ip_addr in net:
             return
@@ -81,7 +62,19 @@ def main():
     if not BOT_TOKEN:
         raise RuntimeError("BOT_TOKEN no configurado en el entorno")
 
-    # Inicializar aplicación Telegram con job_queue personalizado
+    # ============================
+    # 🌎 TIMEZONE CONFIG — aquí adentro
+    # ============================
+    tz = pytz.timezone("America/Mexico_City")
+    scheduler = AsyncIOScheduler(timezone=tz)
+    scheduler.configure(timezone=tz)
+    scheduler.start()
+
+    # Crear JobQueue y forzarle nuestro scheduler pytz
+    job_queue = JobQueue()
+    job_queue._scheduler = scheduler  # 👈 línea clave
+
+    # Inicializar aplicación con job_queue correcto
     app = ApplicationBuilder().token(BOT_TOKEN).job_queue(job_queue).build()
 
     # Registrar comandos
